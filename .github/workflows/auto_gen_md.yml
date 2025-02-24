@@ -1,31 +1,22 @@
-name: auto gen md
-on: 
-  workflow_dispatch:
-  schedule:
-    - cron: '20 20 * * *'
-jobs:
-  auto-gen-md:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: update js func md
-        run: |
-          bash ".github/workflows/shell/gen_js_func_md.sh"
-      - name: update icon md
-        run: |
-          bash ".github/workflows/shell/gen_icon_md.sh"
-      - name: update color md
-        run: |
-          bash ".github/workflows/shell/gen_color_icon_md.sh"
-      - name: Count download
-        run: |
-          bash ".github/workflows/shell/count_download.sh"
-      - name: Update thanks image
-        run: |
-          bash ".github/workflows/shell/gen_thanks_images.sh"
-      - name: Auto Commit
-        uses: stefanzweifel/git-auto-commit-action@v5
+from flask import Flask, request
+import firebase_admin
+from firebase_admin import firestore
 
+app = Flask(__name__)
+firebase_admin.initialize_app()
+db = firestore.client()
+
+@app.route('/match', methods=['POST'])
+def match_profiles():
+    user_id = request.json['user_id']
+    user_ref = db.collection('users').document(user_id)
+    user_data = user_ref.get().to_dict()
+    
+    # AI Matching Algorithm (दिल की बात)
+    all_profiles = db.collection('ai_characters').stream()
+    matches = []
+    for profile in all_profiles:
+        common_interests = set(user_data['interests']) & set(profile.to_dict()['interests'])
+        if len(common_interests) >= 3:
+            matches.append(profile.id)
+    return {'matches': matches}
